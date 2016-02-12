@@ -38,6 +38,9 @@ name: redhat_register
 #   subscription_manager_repos = <repos> (comma separated list of repos (like
 #                                         rhel-6-server-optional-rpms) to
 #                                         enable after registration)
+#   subscription_manager_repos_disable = <repos> (comma separated list of repos (like
+#                                         rhel-6-server-optional-rpms) to
+#                                         disable after registration)
 #
 #   subscription_manager_pool = <pool> (specific pool to be used for
 #                                       registration)
@@ -129,8 +132,10 @@ name: redhat_register
   yum -t -y -e 0 install subscription-manager <%= @host.operatingsystem.major.to_i >= 6 ? 'yum-config-manager' : '' %>
   <% if @host.operatingsystem.major.to_i >= 6  %>
     <% ( enabled_repos = "yum-config-manager --enable #{@host.params['subscription_manager_repos'].gsub(',', ' ')}") if @host.params['subscription_manager_repos'] %>
+    <% ( disabled_repos = "yum-config-manager --disable #{@host.params['subscription_manager_repos_disable'].gsub(',', ' ')}") if @host.params['subscription_manager_repos_disable'] %>
   <% else %>
     <% ( enabled_repos = "subscription-manager repos --enable #{@host.params['subscription_manager_repos'].gsub(',', ' --enable')}") if @host.params['subscription_manager_repos'] %>
+    <% ( disabled_repos = "subscription-manager repos --disable #{@host.params['subscription_manager_repos_disable'].gsub(',', ' --disable')}") if @host.params['subscription_manager_repos_disable'] %>
   <% end %>
   <% if @host.params['http-proxy'] %>
     subscription-manager config --server.proxy_hostname="<%= @host.params['http-proxy'] %>"
@@ -154,6 +159,7 @@ name: redhat_register
     # workaround for RHEL 6.4 bug https://bugzilla.redhat.com/show_bug.cgi?id=1008016
     subscription-manager repos --list > /dev/null
     <%= enabled_repos if enabled_repos %>
+    <%= disabled_repos if disabled_repos %>
   <% elsif @host.params['activation_key'] %>
     <% if @host.params['subscription_manager_certpkg_url'] %>
       rpm -Uvh <%= @host.params['subscription_manager_certpkg_url'] %>
@@ -164,6 +170,7 @@ name: redhat_register
     # workaround for RHEL 6.4 bug https://bugzilla.redhat.com/show_bug.cgi?id=1008016
     subscription-manager repos --list > /dev/null
     <%= enabled_repos if enabled_repos %>
+    <%= disabled_repos if disabled_repos %>
   <% else %>
     # Not registering host.params['activation_key'] not found.
   <% end %>
